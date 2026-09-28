@@ -1,0 +1,6 @@
+ultralytics==8.3.239
+grad-cam==1.5.5
+pandas
+matplotlib
+seaborn
+pyyaml

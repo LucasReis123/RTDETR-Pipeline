@@ -1,0 +1,72 @@
+x-build-args: &build-args
+  PYTHON_VERSION: ${PYTHON_VERSION:-3.12}
+  TORCH_CUDA: ${TORCH_CUDA:-cu126}
+  TORCH_VERSION: ${TORCH_VERSION:-}
+  TORCHVISION_VERSION: ${TORCHVISION_VERSION:-}
+
+x-environment: &environment
+  DATASET_ROOT: /workspace/datasets
+  DATASET_NAME: ${DATASET_NAME:-Torso21}
+  VAL_RATIO: ${VAL_RATIO:-0.20}
+  TEST_RATIO: ${TEST_RATIO:-0.10}
+  FORCE_SINGLE_CLASS: ${FORCE_SINGLE_CLASS:-false}
+  SINGLE_CLASS_NAME: ${SINGLE_CLASS_NAME:-object}
+  SINGLE_CLASS_ID: ${SINGLE_CLASS_ID:-0}
+  MODEL_VERSION: ${MODEL_VERSION:-rtdetr-l.pt}
+  EPOCHS: ${EPOCHS:-60}
+  BATCH_SIZE: ${BATCH_SIZE:-8}
+  IMAGE_SIZE: ${IMAGE_SIZE:-640}
+  PATIENCE: ${PATIENCE:-20}
+  DEVICE: ${DEVICE:-}
+  WORKERS: ${WORKERS:-8}
+  SEED: ${SEED:-0}
+  OPTIMIZER: ${OPTIMIZER:-auto}
+  LR0: ${LR0:-0.01}
+  LRF: ${LRF:-0.01}
+  MOMENTUM: ${MOMENTUM:-0.937}
+  WEIGHT_DECAY: ${WEIGHT_DECAY:-0.0005}
+  PROJECT_DIR: ${PROJECT_DIR:-}
+  RUN_NAME: ${RUN_NAME:-}
+  FIX_DATASET: ${FIX_DATASET:-true}
+  DO_TRAIN: ${DO_TRAIN:-true}
+  DO_ANALYSIS: ${DO_ANALYSIS:-true}
+
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: ${GPU_COUNT:-all}
+            capabilities: [gpu]
+
+x-common: &common
+  user: "${UID:-1000}:${GID:-1000}"
+  shm_size: ${SHM_SIZE:-8gb}
+  working_dir: /workspace/app
+  volumes:
+    - ./:/workspace/app
+    - ${DATASET_HOST_DIR:-../Dateset}:/workspace/datasets
+
+services:
+  train:
+    <<: [*common, *gpu]
+    image: rtdetr-trainer:${TORCH_CUDA:-cu126}
+    build:
+      context: .
+      args: *build-args
+    environment: *environment
+
+  train-cpu:
+    <<: *common
+    profiles: ["cpu"]
+    image: rtdetr-trainer:cpu
+    build:
+      context: .
+      args:
+        <<: *build-args
+        TORCH_CUDA: cpu
+    environment:
+      <<: *environment
+      DEVICE: cpu
+
